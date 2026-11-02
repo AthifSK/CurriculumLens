@@ -1,0 +1,10 @@
+flask==3.1.0
+pandas==2.2.3
+numpy==2.2.5
+scikit-learn==1.6.1
+joblib==1.4.2
+PyMuPDF==1.25.5
+python-docx==1.1.2
+reportlab==4.4.1
+pytest==8.3.5
+Werkzeug==3.1.3

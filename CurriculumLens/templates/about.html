@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>CurriculumLens – About</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}" />
+</head>
+<body>
+<nav class="navbar">
+    <a class="nav-brand" href="/"><span class="brand-icon">◈</span>CurriculumLens</a>
+    <div class="nav-links">
+        <a href="/" class="nav-link">Home</a>
+        <a href="/analyze-single" class="nav-link">Analyze</a>
+        <a href="/compare" class="nav-link">Compare</a>
+        <a href="/model-performance" class="nav-link">Model</a>
+        <a href="/about" class="nav-link active">About</a>
+    </div>
+</nav>
+
+<div class="page-header">
+    <div class="container">
+        <h1>About CurriculumLens</h1>
+        <p>AI-Based Syllabus Similarity Analysis and Curriculum Novelty Detection System</p>
+    </div>
+</div>
+
+<div class="container">
+
+<div class="card">
+    <h2 class="card-title">Problem Statement</h2>
+    <p>Universities regularly need to compare syllabi across courses, departments, and academic years. Identifying overlapping topics, detecting curriculum gaps, and reviewing proposed curriculum changes manually is time-consuming — especially when similar concepts use different terminology across documents.</p>
+    <p>CurriculumLens automates parts of this process using Natural Language Processing and a supervised machine learning classifier trained on labelled syllabus-section pairs.</p>
+</div>
+
+<div class="card">
+    <h2 class="card-title">Project Objectives</h2>
+    <ul class="about-list">
+        <li>Build a reproducible supervised learning pipeline for three-class syllabus similarity classification.</li>
+        <li>Implement practical syllabus segmentation that extracts units and topics from uploaded documents.</li>
+        <li>Provide single-syllabus analysis (topic extraction, clustering, relationship graph) without requiring a second document.</li>
+        <li>Provide two-syllabus comparison with per-topic pair classification and heatmap visualization.</li>
+        <li>Identify topics in a proposed syllabus that have no strong match in the existing syllabus.</li>
+        <li>Generate downloadable CSV and PDF reports.</li>
+        <li>Present evaluation metrics from actual model predictions — not hard-coded numbers.</li>
+    </ul>
+</div>
+
+<div class="card">
+    <h2 class="card-title">Supervised Learning Approach</h2>
+    <p>The classifier is trained on pairs of syllabus section texts (<code>text_a</code>, <code>text_b</code>) with three target labels:</p>
+    <ul class="about-list">
+        <li><strong>highly_similar</strong> — Substantial overlap in concept, terminology, or learning outcome.</li>
+        <li><strong>partially_similar</strong> — Shared themes but different in scope or depth.</li>
+        <li><strong>unrelated</strong> — Distinct, non-overlapping content.</li>
+    </ul>
+    <p><strong>Pipeline:</strong></p>
+    <ol class="about-list">
+        <li>Normalize text (lowercase, unicode normalization, whitespace cleanup).</li>
+        <li>Concatenate pairs: <code>text_a + " [SEP] " + text_b</code>.</li>
+        <li>Vectorize using TF-IDF (word unigrams + bigrams, max 30,000 features, sublinear TF).</li>
+        <li>Train Logistic Regression (multinomial, C=1.0) and Linear SVM (calibrated with 3-fold CV).</li>
+        <li>Select model with higher macro-F1 on the validation set.</li>
+        <li>Evaluate the selected model on the untouched test set.</li>
+    </ol>
+    <p>Data leakage prevention: The TF-IDF vectorizer is fit only on training text. Only <code>text_a</code> and <code>text_b</code> are used as features.</p>
+</div>
+
+<div class="card">
+    <h2 class="card-title">Dataset</h2>
+    <p>The primary dataset (<code>final_syllabus_similarity_dataset</code>) contains 900 synthetic labelled syllabus-section pairs.</p>
+    <ul class="about-list">
+        <li>Train: 630 examples · Validation: 137 · Test: 133</li>
+        <li>Balanced: 300 examples per class</li>
+        <li>Topic-family-disjoint splits (no topic families shared across train/val/test)</li>
+        <li>Data origin: synthetic — all examples authored specifically for this project</li>
+        <li>9 topic batches across domains including HCI, NLP, Networks, Deep Learning, and more</li>
+    </ul>
+    <p><strong>Important:</strong> Good results on this synthetic benchmark do not prove equivalent performance on real university syllabi. Human review of borderline predictions is strongly recommended.</p>
+</div>
+
+<div class="card">
+    <h2 class="card-title">System Architecture</h2>
+    <div class="arch-diagram">
+        <div class="arch-layer">
+            <div class="arch-box">User Browser</div>
+            <div class="arch-arrow">↕ HTTP</div>
+            <div class="arch-box">Flask Backend (app.py)</div>
+        </div>
+        <div class="arch-sub">
+            <div class="arch-box small">Document Extraction<br/>(PyMuPDF / python-docx)</div>
+            <div class="arch-box small">Topic Segmentation<br/>(topic_extractor.py)</div>
+            <div class="arch-box small">TF-IDF + Classifier<br/>(syllabus_classifier.py)</div>
+            <div class="arch-box small">Report Generation<br/>(ReportLab / CSV)</div>
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <h2 class="card-title">Limitations</h2>
+    <ul class="limitations-list">
+        <li>TF-IDF operates on surface word forms. Semantically equivalent topics described with different vocabulary may score low similarity.</li>
+        <li>Scanned PDFs are not supported — only text-based PDFs are processed.</li>
+        <li>Topic extraction quality depends heavily on consistent syllabus formatting.</li>
+        <li>The classifier is trained on synthetic data. Real-world performance must be validated with annotated real syllabi.</li>
+        <li>Classifier probabilities are not literal syllabus overlap percentages.</li>
+        <li>Topics flagged as "potentially new" are new <em>relative to the existing syllabus only</em> — not globally novel.</li>
+        <li>The <code>partially_similar</code> class involves subjective judgment; borderline cases should be reviewed by domain experts.</li>
+    </ul>
+</div>
+
+<div class="card">
+    <h2 class="card-title">Future Enhancements</h2>
+    <ul class="about-list">
+        <li>Sentence-transformer embeddings (e.g. SBERT) for semantic rather than lexical similarity.</li>
+        <li>OCR support for scanned PDFs.</li>
+        <li>Active learning interface for borderline label correction.</li>
+        <li>Evaluation on real annotated university syllabi.</li>
+        <li>Batch processing for multiple syllabus pairs.</li>
+        <li>User-adjustable matching thresholds via UI.</li>
+        <li>LLM-based rationale generation for each predicted pair.</li>
+    </ul>
+</div>
+
+</div><!-- /container -->
+
+<footer class="footer">
+    <p>CurriculumLens · Supervised Learning Course Project · All training data is synthetic.</p>
+</footer>
+</body>
+</html>

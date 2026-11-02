@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>CurriculumLens – AI Syllabus Analysis</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}" />
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+</head>
+<body>
+<!-- ── Navigation ──────────────────────────────────────────────── -->
+<nav class="navbar">
+    <a class="nav-brand" href="/">
+        <span class="brand-icon">◈</span>
+        CurriculumLens
+    </a>
+    <div class="nav-links">
+        <a href="/" class="nav-link">Home</a>
+        <a href="/analyze-single" class="nav-link">Analyze</a>
+        <a href="/compare" class="nav-link">Compare</a>
+        <a href="/model-performance" class="nav-link">Model</a>
+    </div>
+</nav>
+
+<!-- ── Hero ────────────────────────────────────────────────────── -->
+<section class="hero">
+    <div class="hero-content">
+        <div class="hero-badge">Supervised Machine Learning · NLP · Educational Technology</div>
+        <h1 class="hero-title">CurriculumLens</h1>
+        <p class="hero-subtitle">
+            AI-Based Syllabus Similarity Analysis<br/>and Curriculum Novelty Detection System
+        </p>
+        <p class="hero-desc">
+            Upload university syllabi to identify overlapping topics, detect potentially new content,
+            and explore curriculum relationships through interactive visualizations.
+        </p>
+        {% if not model_available %}
+        <div class="alert alert-warning">
+            ⚠ Trained model not found. Run <code>python train_model.py</code> before comparing syllabi.
+        </div>
+        {% endif %}
+        <div class="hero-actions">
+            <a href="/analyze-single" class="btn btn-primary btn-lg">
+                <span>📄</span> Analyze One Syllabus
+            </a>
+            <a href="/compare" class="btn btn-secondary btn-lg {% if not model_available %}btn-disabled{% endif %}">
+                <span>⚖</span> Compare Two Syllabi
+            </a>
+            <a href="/model-performance" class="btn btn-outline btn-lg">
+                <span>📊</span> Model Performance
+            </a>
+        </div>
+    </div>
+    <div class="hero-visual">
+        <div class="visual-card">
+            <div class="visual-badge highly-similar">Highly Similar</div>
+            <div class="visual-badge partially-similar">Partially Similar</div>
+            <div class="visual-badge unrelated">Unrelated</div>
+            <p class="visual-note">Three relationship classes predicted by the trained classifier</p>
+        </div>
+    </div>
+</section>
+
+<!-- ── Feature Cards ────────────────────────────────────────────── -->
+<section class="features container">
+    <h2 class="section-title">What CurriculumLens Does</h2>
+    <div class="feature-grid">
+        <div class="feature-card">
+            <div class="feature-icon">🔍</div>
+            <h3>Single Syllabus Analysis</h3>
+            <p>Upload one syllabus. Extract topics, explore unit distribution, and visualize topic relationships in an interactive graph — no second document needed.</p>
+        </div>
+        <div class="feature-card">
+            <div class="feature-icon">⚖</div>
+            <h3>Two-Syllabus Comparison</h3>
+            <p>Upload an existing and a proposed syllabus. The trained classifier labels each topic pair as <em>Highly Similar</em>, <em>Partially Similar</em>, or <em>Unrelated</em>.</p>
+        </div>
+        <div class="feature-card">
+            <div class="feature-icon">🆕</div>
+            <h3>Novelty Detection</h3>
+            <p>Identify topics in the proposed syllabus with no strong match in the existing one — flagged as "potentially new relative to the existing syllabus."</p>
+        </div>
+        <div class="feature-card">
+            <div class="feature-icon">📊</div>
+            <h3>Interactive Visualizations</h3>
+            <p>Similarity distribution charts, topic relationship networks, heatmaps, unit distribution comparisons, and a detailed model performance dashboard.</p>
+        </div>
+        <div class="feature-card">
+            <div class="feature-icon">🤖</div>
+            <h3>Supervised ML Pipeline</h3>
+            <p>Real TF-IDF + Logistic Regression / Linear SVM training on 900 labelled syllabus-section pairs. Model selected by macro-F1 on a held-out validation set.</p>
+        </div>
+        <div class="feature-card">
+            <div class="feature-icon">📥</div>
+            <h3>Downloadable Reports</h3>
+            <p>Export analysis results as structured CSV or detailed PDF reports, including topic matching tables and interpretation notes.</p>
+        </div>
+    </div>
+</section>
+
+<!-- ── Classes Explainer ─────────────────────────────────────────── -->
+<section class="classes-section container">
+    <h2 class="section-title">Relationship Classes</h2>
+    <div class="classes-grid">
+        <div class="class-card class-high">
+            <div class="class-label">HIGHLY SIMILAR</div>
+            <p>Two syllabus sections cover the same core concept, terminology, or learning outcome with substantial overlap.</p>
+            <div class="class-example">e.g. "Usability evaluation using heuristic inspection" ↔ "Expert review against Nielsen's principles"</div>
+        </div>
+        <div class="class-card class-partial">
+            <div class="class-label">PARTIALLY SIMILAR</div>
+            <p>Two sections share related themes or sub-topics but differ in scope, depth, or specific focus areas.</p>
+            <div class="class-example">e.g. "Machine learning basics" ↔ "Supervised classification algorithms"</div>
+        </div>
+        <div class="class-card class-unrelated">
+            <div class="class-label">UNRELATED</div>
+            <p>The two sections cover distinct, non-overlapping content — even if they are from the same general field.</p>
+            <div class="class-example">e.g. "Network routing protocols" ↔ "Morphological text analysis"</div>
+        </div>
+    </div>
+</section>
+
+<!-- ── Footer ────────────────────────────────────────────────────── -->
+<footer class="footer">
+    <p>CurriculumLens · AI-Based Syllabus Similarity Analysis · Supervised Learning Course Project</p>
+    <p>Training data is real-world syllabus pairs. Results may vary on unseen syllabi.</p>
+</footer>
+
+<script src="{{ url_for('static', filename='js/main.js') }}"></script>
+</body>
+</html>

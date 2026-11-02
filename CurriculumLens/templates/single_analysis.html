@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>CurriculumLens – Single Syllabus Analysis</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}" />
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+</head>
+<body>
+<nav class="navbar">
+    <a class="nav-brand" href="/"><span class="brand-icon">◈</span>CurriculumLens</a>
+    <div class="nav-links">
+        <a href="/" class="nav-link">Home</a>
+        <a href="/analyze-single" class="nav-link active">Analyze</a>
+        <a href="/compare" class="nav-link">Compare</a>
+        <a href="/model-performance" class="nav-link">Model</a>
+    </div>
+</nav>
+
+<div class="page-header">
+    <div class="container">
+        <h1>📄 Single Syllabus Analysis</h1>
+        <p>Upload one syllabus document to extract topics, explore unit distribution, and visualize topic relationships.</p>
+    </div>
+</div>
+
+<div class="container">
+    <!-- Upload Section -->
+    <div class="card" id="upload-section">
+        <h2 class="card-title">Upload Syllabus</h2>
+        <div class="upload-area" id="drop-zone-single">
+            <div class="upload-icon">📄</div>
+            <p class="upload-text">Drag & drop your syllabus here, or click to browse</p>
+            <p class="upload-hint">Supported formats: PDF, TXT, DOCX (max 20 MB)</p>
+            <input type="file" id="syllabus-file" accept=".pdf,.txt,.docx" class="file-input" />
+            <label for="syllabus-file" class="btn btn-primary">Choose File</label>
+            <div id="selected-file-name" class="selected-file"></div>
+        </div>
+        <div class="upload-actions">
+            <button id="analyze-btn" class="btn btn-primary btn-lg" disabled>
+                🔍 Analyze Syllabus
+            </button>
+        </div>
+    </div>
+
+    <!-- Loading -->
+    <div class="loading-overlay" id="loading-single" style="display:none">
+        <div class="loader"></div>
+        <p>Extracting topics and analyzing syllabus…</p>
+    </div>
+
+    <!-- Error -->
+    <div class="alert alert-error" id="error-single" style="display:none"></div>
+
+    <!-- Results -->
+    <div id="results-single" style="display:none">
+
+        <!-- High-Level Percentage Metrics (Same as Two-Syllabi Comparison) -->
+        <div class="stats-grid" style="margin-bottom: 1rem;">
+            <div class="stat-card stat-teal" style="border-top: 4px solid #10B981;">
+                <div class="stat-value" id="stat-pct-coherence">—</div>
+                <div class="stat-label">Curriculum Coherence %</div>
+            </div>
+            <div class="stat-card stat-green" style="border-top: 4px solid #059669;">
+                <div class="stat-value" id="stat-pct-connected">—</div>
+                <div class="stat-label">Interconnected Topics %</div>
+            </div>
+            <div class="stat-card stat-orange" style="border-top: 4px solid #F59E0B;">
+                <div class="stat-value" id="stat-pct-cross">—</div>
+                <div class="stat-label">Cross-Unit Integration %</div>
+            </div>
+            <div class="stat-card stat-blue" style="border-top: 4px solid #3B82F6;">
+                <div class="stat-value" id="stat-pct-standalone">—</div>
+                <div class="stat-label">Distinct / Focused %</div>
+            </div>
+        </div>
+
+        <!-- Topic Count Details -->
+        <div class="stats-grid" id="stats-single">
+            <div class="stat-card stat-blue">
+                <div class="stat-value" id="stat-topics">—</div>
+                <div class="stat-label">Topics Detected</div>
+            </div>
+            <div class="stat-card stat-blue">
+                <div class="stat-value" id="stat-units">—</div>
+                <div class="stat-label">Units Detected</div>
+            </div>
+            <div class="stat-card stat-teal">
+                <div class="stat-value" id="stat-avg">—</div>
+                <div class="stat-label">Avg Topics / Unit</div>
+            </div>
+            <div class="stat-card stat-purple">
+                <div class="stat-value" id="stat-conn-count">—</div>
+                <div class="stat-label">Core Linked Concepts</div>
+            </div>
+        </div>
+
+        <!-- Percentage Summary Banner (Identical layout to Two-Syllabi Comparison) -->
+        <div class="card pct-summary-card" id="pct-summary-card">
+            <h3 class="card-title">📊 Internal Curriculum Coherence Breakdown</h3>
+            <p class="card-desc">Percentage breakdown of topic connectivity and structural integration across units.</p>
+            <div class="pct-bars">
+                <div class="pct-row">
+                    <div class="pct-label pct-matched-label">🔗 Interconnected Topics</div>
+                    <div class="pct-bar-wrap">
+                        <div class="pct-bar pct-bar-matched" id="bar-connected"></div>
+                    </div>
+                    <div class="pct-value" id="pct-connected-val">—</div>
+                </div>
+                <div class="pct-row">
+                    <div class="pct-label pct-partial-label">🌐 Cross-Unit Bridges</div>
+                    <div class="pct-bar-wrap">
+                        <div class="pct-bar pct-bar-partial" id="bar-cross"></div>
+                    </div>
+                    <div class="pct-value" id="pct-cross-val">—</div>
+                </div>
+                <div class="pct-row">
+                    <div class="pct-label" style="color: #3B82F6;">🎯 Distinct / Specialized</div>
+                    <div class="pct-bar-wrap">
+                        <div class="pct-bar" style="background: linear-gradient(90deg, #3B82F6, #60A5FA);" id="bar-standalone"></div>
+                    </div>
+                    <div class="pct-value" id="pct-standalone-val">—</div>
+                </div>
+            </div>
+            <div class="pct-verdict" id="pct-verdict"></div>
+        </div>
+
+        <!-- Charts Row -->
+        <div class="charts-row">
+            <div class="card chart-card">
+                <h3 class="card-title">Topic Distribution by Unit</h3>
+                <div class="chart-container">
+                    <canvas id="chart-unit-dist"></canvas>
+                </div>
+            </div>
+            <div class="card chart-card">
+                <h3 class="card-title">Topic Connectivity Breakdown</h3>
+                <div class="chart-container">
+                    <canvas id="chart-connectivity-dist"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Extracted Text Preview -->
+        <div class="card collapsible">
+            <h3 class="card-title collapsible-toggle" onclick="toggleSection('preview-single')">
+                📝 Extracted Text Preview <span class="toggle-icon">▼</span>
+            </h3>
+            <div id="preview-single" class="collapsible-content">
+                <pre id="text-preview" class="text-preview"></pre>
+            </div>
+        </div>
+
+        <!-- Topic Inventory -->
+        <div class="card">
+            <div class="card-header-row">
+                <h3 class="card-title">Topic Inventory</h3>
+                <div class="export-buttons">
+                    <button onclick="exportCSV('single')" class="btn btn-sm btn-outline">⬇ CSV</button>
+                    <button onclick="exportPDF('single')" class="btn btn-sm btn-outline">⬇ PDF</button>
+                </div>
+            </div>
+            <div class="table-controls">
+                <input type="text" id="topic-search" placeholder="Search topics…" class="search-input" />
+            </div>
+            <div class="table-wrapper">
+                <table class="data-table" id="topic-table">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Unit</th>
+                            <th>Topic Name</th>
+                            <th>Related In-Course Concept</th>
+                            <th>Link Strength</th>
+                            <th>Cross-Unit Bridge?</th>
+                        </tr>
+                    </thead>
+                    <tbody id="topic-tbody"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<footer class="footer">
+    <p>CurriculumLens · AI-Based Syllabus Analysis and Curriculum Coherence System.</p>
+</footer>
+
+<script src="{{ url_for('static', filename='js/main.js') }}"></script>
+<script src="{{ url_for('static', filename='js/charts.js') }}"></script>
+<script src="{{ url_for('static', filename='js/single_analysis.js') }}"></script>
+</body>
+</html>

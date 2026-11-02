@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>CurriculumLens – Model Performance</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}" />
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+</head>
+<body>
+<nav class="navbar">
+    <a class="nav-brand" href="/"><span class="brand-icon">◈</span>CurriculumLens</a>
+    <div class="nav-links">
+        <a href="/" class="nav-link">Home</a>
+        <a href="/analyze-single" class="nav-link">Analyze</a>
+        <a href="/compare" class="nav-link">Compare</a>
+        <a href="/model-performance" class="nav-link active">Model</a>
+    </div>
+</nav>
+
+<div class="page-header">
+    <div class="container">
+        <h1>📊 Model Performance</h1>
+        <p>Evaluation results for the trained syllabus similarity classifier.</p>
+    </div>
+</div>
+
+<div class="container">
+
+{% if not model_available %}
+<div class="alert alert-warning">
+    ⚠ Trained model not found. Please run: <code>python train_model.py</code> then <code>python evaluate_model.py</code>
+</div>
+{% else %}
+
+    <!-- Model Info -->
+    <div class="card">
+        <h2 class="card-title">Selected Model</h2>
+        <div class="model-info-grid">
+            <div class="model-info-item">
+                <span class="info-label">Model</span>
+                <span class="info-value">{{ metadata.get('model_name', '—') }}</span>
+            </div>
+            <div class="model-info-item">
+                <span class="info-label">Selection Criterion</span>
+                <span class="info-value">Macro-F1 on Validation Set</span>
+            </div>
+            <div class="model-info-item">
+                <span class="info-label">Training Examples</span>
+                <span class="info-value">{{ metadata.get('train_size', '—') }}</span>
+            </div>
+            <div class="model-info-item">
+                <span class="info-label">Validation Examples</span>
+                <span class="info-value">{{ metadata.get('val_size', '—') }}</span>
+            </div>
+            <div class="model-info-item">
+                <span class="info-label">Data Origin</span>
+                <span class="info-value">Synthetic (see limitations)</span>
+            </div>
+            <div class="model-info-item">
+                <span class="info-label">Classes</span>
+                <span class="info-value">highly_similar · partially_similar · unrelated</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Validation Comparison -->
+    {% if val_comparison %}
+    <div class="card">
+        <h2 class="card-title">Validation Set — Candidate Comparison</h2>
+        <p class="card-desc">Both candidate classifiers are evaluated on the validation set to select the best model. The test set is only used for final evaluation after model selection.</p>
+        <div class="table-wrapper">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Model</th>
+                        <th>Val Accuracy</th>
+                        <th>Val Macro-F1</th>
+                        <th>Val Macro-Precision</th>
+                        <th>Val Macro-Recall</th>
+                        <th>Selected</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for key, label in [('logistic_regression', 'Logistic Regression'), ('linear_svm', 'Linear SVM (Calibrated)')] %}
+                    {% if key in val_comparison %}
+                    {% set m = val_comparison[key] %}
+                    <tr class="{{ 'selected-row' if val_comparison.get('selected_model', '') in label else '' }}">
+                        <td><strong>{{ label }}</strong></td>
+                        <td>{{ "%.4f"|format(m.get('accuracy', 0)) }}</td>
+                        <td>{{ "%.4f"|format(m.get('macro_f1', 0)) }}</td>
+                        <td>{{ "%.4f"|format(m.get('macro_precision', 0)) }}</td>
+                        <td>{{ "%.4f"|format(m.get('macro_recall', 0)) }}</td>
+                        <td>{{ '✅' if val_comparison.get('selected_model', '') in label else '' }}</td>
+                    </tr>
+                    {% endif %}
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Test Metrics -->
+    {% if metrics %}
+    <div class="stats-grid">
+        <div class="stat-card stat-blue">
+            <div class="stat-value">{{ "%.1f%%"|format(metrics.get('accuracy', 0)*100) }}</div>
+            <div class="stat-label">Test Accuracy</div>
+        </div>
+        <div class="stat-card stat-green">
+            <div class="stat-value">{{ "%.4f"|format(metrics.get('macro_f1', 0)) }}</div>
+            <div class="stat-label">Macro F1</div>
+        </div>
+        <div class="stat-card stat-teal">
+            <div class="stat-value">{{ "%.4f"|format(metrics.get('macro_precision', 0)) }}</div>
+            <div class="stat-label">Macro Precision</div>
+        </div>
+        <div class="stat-card stat-purple">
+            <div class="stat-value">{{ "%.4f"|format(metrics.get('macro_recall', 0)) }}</div>
+            <div class="stat-label">Macro Recall</div>
+        </div>
+    </div>
+
+    <!-- Classification Report -->
+    <div class="card">
+        <h2 class="card-title">Test Set — Per-Class Metrics</h2>
+        <p class="card-desc">These results are from the held-out test set ({{ metrics.get('classification_report', {}).get('weighted avg', {}).get('support', '—') }} examples), evaluated after model selection. Not used for tuning.</p>
+        <div class="table-wrapper">
+            <table class="data-table">
+                <thead>
+                    <tr><th>Class</th><th>Precision</th><th>Recall</th><th>F1-Score</th><th>Support</th></tr>
+                </thead>
+                <tbody>
+                    {% set report = metrics.get('classification_report', {}) %}
+                    {% for cls in ['highly_similar', 'partially_similar', 'unrelated'] %}
+                    {% if cls in report %}
+                    <tr>
+                        <td><span class="label-badge label-{{ cls }}">{{ cls }}</span></td>
+                        <td>{{ "%.4f"|format(report[cls].get('precision', 0)) }}</td>
+                        <td>{{ "%.4f"|format(report[cls].get('recall', 0)) }}</td>
+                        <td>{{ "%.4f"|format(report[cls]['f1-score']) }}</td>
+                        <td>{{ report[cls].get('support', '—') }}</td>
+                    </tr>
+                    {% endif %}
+                    {% endfor %}
+                    {% if 'macro avg' in report %}
+                    <tr class="summary-row">
+                        <td><strong>Macro Avg</strong></td>
+                        <td>{{ "%.4f"|format(report['macro avg'].get('precision', 0)) }}</td>
+                        <td>{{ "%.4f"|format(report['macro avg'].get('recall', 0)) }}</td>
+                        <td>{{ "%.4f"|format(report['macro avg']['f1-score']) }}</td>
+                        <td>{{ report['macro avg'].get('support', '—') }}</td>
+                    </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Confusion Matrix -->
+    <div class="card">
+        <h2 class="card-title">Confusion Matrix (Test Set)</h2>
+        <p class="card-desc">Rows = actual labels · Columns = predicted labels</p>
+        <div class="chart-container" style="max-width:480px; margin: 0 auto;">
+            <canvas id="chart-cm"></canvas>
+        </div>
+    </div>
+    {% else %}
+    <div class="alert alert-warning">
+        No test evaluation found. Run: <code>python evaluate_model.py</code>
+    </div>
+    {% endif %}
+
+{% endif %}
+
+    <!-- Dataset Limitations -->
+    <div class="card">
+        <h2 class="card-title">Dataset & Limitations</h2>
+        <ul class="limitations-list">
+            <li>All 900 training examples are <strong>synthetic</strong> — authored specifically for this project. They do not represent real university syllabi.</li>
+            <li>Good performance on synthetic data does not guarantee equivalent performance on real-world syllabi.</li>
+            <li>TF-IDF cannot capture semantic equivalence across different terminology (e.g. "regression" vs. "fitting a line to data").</li>
+            <li>The <code>partially_similar</code> class involves subjective judgment and may have borderline labels.</li>
+            <li>Model confidence values are class probabilities from a calibrated classifier. They are NOT literal syllabus overlap percentages.</li>
+            <li>Topic extraction quality depends on syllabus formatting. Scanned PDFs are not supported.</li>
+        </ul>
+    </div>
+</div>
+
+<footer class="footer">
+    <p>CurriculumLens · Model Performance · Supervised Learning Course Project</p>
+</footer>
+
+<script src="{{ url_for('static', filename='js/main.js') }}"></script>
+<script src="{{ url_for('static', filename='js/charts.js') }}"></script>
+<script>
+// Confusion matrix chart
+const cmData = {{ metrics.get('confusion_matrix', []) | tojson }};
+const cmLabels = {{ metrics.get('confusion_matrix_labels', []) | tojson }};
+if (cmData && cmData.length > 0 && document.getElementById('chart-cm')) {
+    renderConfusionMatrix('chart-cm', cmData, cmLabels);
+}
+</script>
+</body>
+</html>

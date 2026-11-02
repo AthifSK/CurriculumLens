@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>CurriculumLens – Compare Syllabi</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}" />
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+</head>
+<body>
+<nav class="navbar">
+    <a class="nav-brand" href="/"><span class="brand-icon">◈</span>CurriculumLens</a>
+    <div class="nav-links">
+        <a href="/" class="nav-link">Home</a>
+        <a href="/analyze-single" class="nav-link">Analyze</a>
+        <a href="/compare" class="nav-link active">Compare</a>
+        <a href="/model-performance" class="nav-link">Model</a>
+    </div>
+</nav>
+
+<div class="page-header">
+    <div class="container">
+        <h1>⚖ Two-Syllabus Comparison</h1>
+        <p>Upload an existing and a proposed syllabus. The trained classifier will label each topic pair as Highly Similar, Partially Similar, or Unrelated.</p>
+    </div>
+</div>
+
+<div class="container">
+
+    <!-- Upload Section -->
+    <div class="card">
+        <h2 class="card-title">Upload Syllabi</h2>
+        <div class="upload-pair">
+            <div class="upload-box">
+                <div class="upload-box-label">📘 Syllabus A — Existing Syllabus</div>
+                <div class="upload-area small" id="drop-a">
+                    <input type="file" id="file-a" accept=".pdf,.txt,.docx" class="file-input" />
+                    <label for="file-a" class="btn btn-outline">Choose File A</label>
+                    <div id="name-a" class="selected-file"></div>
+                </div>
+            </div>
+            <div class="upload-arrow">→</div>
+            <div class="upload-box">
+                <div class="upload-box-label">📗 Syllabus B — Proposed Syllabus</div>
+                <div class="upload-area small" id="drop-b">
+                    <input type="file" id="file-b" accept=".pdf,.txt,.docx" class="file-input" />
+                    <label for="file-b" class="btn btn-outline">Choose File B</label>
+                    <div id="name-b" class="selected-file"></div>
+                </div>
+            </div>
+        </div>
+        <div class="upload-actions">
+            <button id="compare-btn" class="btn btn-primary btn-lg" disabled>
+                ⚖ Compare Syllabi
+            </button>
+        </div>
+    </div>
+
+    <!-- Loading -->
+    <div class="loading-overlay" id="loading-compare" style="display:none">
+        <div class="loader"></div>
+        <p>Extracting topics and classifying pairs… This may take a moment.</p>
+    </div>
+
+    <!-- Error -->
+    <div class="alert alert-error" id="error-compare" style="display:none"></div>
+
+    <!-- Results -->
+    <div id="results-compare" style="display:none">
+
+        <!-- High-Level Percentage Metrics -->
+        <div class="stats-grid" style="margin-bottom: 1rem;">
+            <div class="stat-card stat-teal" style="border-top: 4px solid #10B981;">
+                <div class="stat-value" id="stat-pct-overlap">—</div>
+                <div class="stat-label">Total Overlap %</div>
+            </div>
+            <div class="stat-card stat-green" style="border-top: 4px solid #059669;">
+                <div class="stat-value" id="stat-pct-matched">—</div>
+                <div class="stat-label">Matches %</div>
+            </div>
+            <div class="stat-card stat-orange" style="border-top: 4px solid #F59E0B;">
+                <div class="stat-value" id="stat-pct-partial">—</div>
+                <div class="stat-label">Partial Overlap %</div>
+            </div>
+            <div class="stat-card stat-red" style="border-top: 4px solid #EF4444;">
+                <div class="stat-value" id="stat-pct-unmatched">—</div>
+                <div class="stat-label">Mismatches %</div>
+            </div>
+        </div>
+
+        <!-- Topic Count Details -->
+        <div class="stats-grid">
+            <div class="stat-card stat-blue">
+                <div class="stat-value" id="stat-topics-a">—</div>
+                <div class="stat-label">Topics in Syllabus A</div>
+            </div>
+            <div class="stat-card stat-blue">
+                <div class="stat-value" id="stat-topics-b">—</div>
+                <div class="stat-label">Topics in Syllabus B</div>
+            </div>
+            <div class="stat-card stat-teal">
+                <div class="stat-value" id="stat-matched">—</div>
+                <div class="stat-label">Matched Topics</div>
+            </div>
+            <div class="stat-card stat-orange">
+                <div class="stat-value" id="stat-partial">—</div>
+                <div class="stat-label">Partially Matched</div>
+            </div>
+            <div class="stat-card stat-red">
+                <div class="stat-value" id="stat-unmatched-a">—</div>
+                <div class="stat-label">Unmatched in A</div>
+            </div>
+            <div class="stat-card stat-purple">
+                <div class="stat-value" id="stat-new-b">—</div>
+                <div class="stat-label">Novel Topics in B</div>
+            </div>
+        </div>
+
+        <!-- Percentage Summary Banner -->
+        <div class="card pct-summary-card" id="pct-summary-card">
+            <h3 class="card-title">📊 Curriculum Overlap Summary</h3>
+            <p class="card-desc">Percentage breakdown of how topics in Syllabus A relate to Syllabus B.</p>
+            <div class="pct-bars">
+                <div class="pct-row">
+                    <div class="pct-label pct-matched-label">✅ Matched</div>
+                    <div class="pct-bar-wrap">
+                        <div class="pct-bar pct-bar-matched" id="bar-matched"></div>
+                    </div>
+                    <div class="pct-value" id="pct-matched-val">—</div>
+                </div>
+                <div class="pct-row">
+                    <div class="pct-label pct-partial-label">🔶 Partial Overlap</div>
+                    <div class="pct-bar-wrap">
+                        <div class="pct-bar pct-bar-partial" id="bar-partial"></div>
+                    </div>
+                    <div class="pct-value" id="pct-partial-val">—</div>
+                </div>
+                <div class="pct-row">
+                    <div class="pct-label pct-unmatched-label">❌ No Match</div>
+                    <div class="pct-bar-wrap">
+                        <div class="pct-bar pct-bar-unmatched" id="bar-unmatched"></div>
+                    </div>
+                    <div class="pct-value" id="pct-unmatched-val">—</div>
+                </div>
+            </div>
+            <div class="pct-verdict" id="pct-verdict"></div>
+        </div>
+
+        <!-- Charts Row -->
+        <div class="charts-row">
+            <div class="card chart-card">
+                <h3 class="card-title">Similarity Distribution</h3>
+                <p class="card-desc">Similarity breakdown of topics in Syllabus A when compared against Syllabus B.</p>
+                <div class="chart-container">
+                    <canvas id="chart-sim-dist"></canvas>
+                </div>
+            </div>
+            <div class="card chart-card">
+                <h3 class="card-title">Topic Coverage</h3>
+                <p class="card-desc">Match status of topics in Syllabus A (existing).</p>
+                <div class="chart-container">
+                    <canvas id="chart-coverage"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Unit Distribution -->
+        <div class="card">
+            <h3 class="card-title">Unit Distribution</h3>
+            <p class="card-desc">Number of topics per unit in both syllabi.</p>
+            <div class="chart-container chart-tall">
+                <canvas id="chart-unit-compare"></canvas>
+            </div>
+        </div>
+
+        <!-- Heatmap -->
+        <div class="card">
+            <h3 class="card-title">Topic Matching Heatmap</h3>
+            <p class="card-desc">Rows = Syllabus A topics · Columns = Syllabus B topics · Color = predicted relationship. Hover for details. Showing top candidate pairs (max 25×25).</p>
+            <div class="heatmap-controls">
+                <label>Max topics to display:
+                    <select id="heatmap-limit" onchange="renderHeatmap()">
+                        <option value="15">15</option>
+                        <option value="20" selected>20</option>
+                        <option value="25">25</option>
+                    </select>
+                </label>
+            </div>
+            <div id="heatmap-container" class="heatmap-wrapper"></div>
+        </div>
+
+        <!-- Matched Topics -->
+        <div class="card">
+            <div class="card-header-row">
+                <h3 class="card-title">✅ Matched Topics</h3>
+                <div class="export-buttons">
+                    <button onclick="exportCSV('comparison')" class="btn btn-sm btn-outline">⬇ CSV</button>
+                    <button onclick="exportPDF('comparison')" class="btn btn-sm btn-outline">⬇ PDF</button>
+                </div>
+            </div>
+            <div class="table-wrapper">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Topic A</th><th>Unit A</th>
+                            <th>Topic B</th><th>Unit B</th>
+                            <th>Label</th><th>Confidence</th>
+                        </tr>
+                    </thead>
+                    <tbody id="matched-tbody"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Partially Matched -->
+        <div class="card">
+            <h3 class="card-title">🔶 Partially Matched Topics</h3>
+            <div class="table-wrapper">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Topic A</th><th>Unit A</th>
+                            <th>Topic B</th><th>Unit B</th>
+                            <th>Label</th><th>Confidence</th>
+                        </tr>
+                    </thead>
+                    <tbody id="partial-tbody"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Unmatched A -->
+        <div class="card">
+            <h3 class="card-title">❌ Unmatched Topics from Syllabus A</h3>
+            <p class="card-desc">Topics in the existing syllabus with no strong match in the proposed syllabus.</p>
+            <div id="unmatched-a-list" class="topic-chips"></div>
+        </div>
+
+        <!-- Potentially New B -->
+        <div class="card">
+            <h3 class="card-title">🆕 Potentially New Topics in Syllabus B</h3>
+            <p class="card-desc">Topics in the proposed syllabus with no sufficiently strong match in the existing syllabus. These are <em>potentially new relative to the existing syllabus</em> — not globally new. Human review is recommended.</p>
+            <div id="new-b-list" class="topic-chips new-chips"></div>
+        </div>
+
+    </div><!-- /results-compare -->
+</div>
+
+<footer class="footer">
+    <p>CurriculumLens · Classifier labels are predictions, not guaranteed facts. Model confidence is a class probability, not a literal overlap percentage.</p>
+</footer>
+
+<script src="{{ url_for('static', filename='js/main.js') }}"></script>
+<script src="{{ url_for('static', filename='js/charts.js') }}"></script>
+<script src="{{ url_for('static', filename='js/comparison.js') }}"></script>
+</body>
+</html>

@@ -1,0 +1,24 @@
+Unit 1: Supervised Learning Fundamentals
+- Linear regression, ordinary least squares, and cost function optimization
+- Logistic regression for binary classification and decision boundaries
+- Regularization techniques: Ridge (L2) and Lasso (L1) regression
+
+Unit 2: Decision Trees and Ensembles
+- Decision trees: splitting criteria, entropy, and information gain
+- Random forests: bootstrap aggregating and out-of-bag error
+- Gradient boosting machines (GBM) and AdaBoost
+
+Unit 3: Support Vector Machines & Kernels
+- Linear support vector classifiers and margin maximization
+- Kernel trick: polynomial, radial basis function (RBF), and sigmoid kernels
+- Soft margin optimization and slack variables
+
+Unit 4: Unsupervised Learning
+- K-means clustering: initialization, convergence, and elbow method
+- Hierarchical clustering: agglomerative vs divisive dendrograms
+- Principal Component Analysis (PCA) for dimensionality reduction
+
+Unit 5: Model Evaluation and Validation
+- Cross-validation: k-fold, stratified k-fold, and leave-one-out
+- Evaluation metrics: accuracy, precision, recall, F1-score, and ROC-AUC
+- Hyperparameter tuning using grid search and random search

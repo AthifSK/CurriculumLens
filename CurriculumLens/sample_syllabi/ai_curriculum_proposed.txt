@@ -1,0 +1,25 @@
+Unit 1: Foundations of Artificial Intelligence
+- Linear models for regression and predictive analytics
+- Logistic regression and probabilistic classification models
+- L1 and L2 penalty methods for feature selection and regularization
+
+Unit 2: Tree-Based Learning and Ensembles
+- Decision tree induction with entropy and Gini impurity
+- Random forest ensembles and bagging strategies
+- Extreme Gradient Boosting (XGBoost) and LightGBM
+
+Unit 3: Deep Neural Architectures
+- Multilayer perceptrons, backpropagation, and stochastic gradient descent
+- Convolutional Neural Networks (CNNs) for computer vision
+- Recurrent Neural Networks (RNNs) and Long Short-Term Memory (LSTM)
+- Attention mechanisms and Transformer foundations
+
+Unit 4: Clustering and Dimensionality Reduction
+- K-means clustering algorithm and cluster validation indices
+- Principal Component Analysis and singular value decomposition
+- t-Distributed Stochastic Neighbor Embedding (t-SNE) for visualization
+
+Unit 5: Responsible AI and Deployment
+- Model explainability using SHAP and LIME
+- Algorithmic fairness, bias detection, and ethics in AI systems
+- MLOps pipeline, model monitoring, and drift detection
